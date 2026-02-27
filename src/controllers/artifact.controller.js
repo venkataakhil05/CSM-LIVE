@@ -1,0 +1,126 @@
+const Artifact = require("../models/artifact.model");
+const { sendArtifactWebhook } = require("../utils/webhookSender");
+
+// CREATE
+// CREATE (Moved to bottom)
+
+// GET ALL
+exports.getArtifacts = async (req, res) => {
+  try {
+    const artifacts = await Artifact.find().populate("createdBy", "email");
+    res.json(artifacts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// TOGGLE LIKE
+exports.toggleLike = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const artifact = await Artifact.findById(req.params.id);
+    if (!artifact) {
+      return res.status(404).json({ message: "Artifact not found" });
+    }
+
+    const alreadyLiked = artifact.likes.some((id) => id.toString() === userId);
+
+    if (alreadyLiked) {
+      artifact.likes.pull(userId);
+    } else {
+      artifact.likes.push(userId);
+    }
+
+    await artifact.save();
+
+    res.json({
+      message: alreadyLiked ? "Unliked" : "Liked",
+      totalLikes: artifact.likes.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET LIKES
+exports.getLikes = async (req, res) => {
+  try {
+    const artifact = await Artifact.findById(req.params.id).populate(
+      "likes",
+      "name email",
+    );
+
+    if (!artifact) {
+      return res.status(404).json({ message: "Artifact not found" });
+    }
+
+    res.json({
+      totalLikes: artifact.likes.length,
+      users: artifact.likes,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ADD COMMENT
+exports.addComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { text } = req.body;
+
+    const artifact = await Artifact.findById(req.params.id);
+    if (!artifact) {
+      return res.status(404).json({ message: "Artifact not found" });
+    }
+
+    artifact.comments.push({ userId, text });
+    await artifact.save();
+
+    res.json({
+      message: "Comment added",
+      comments: artifact.comments,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET COMMENTS
+exports.getComments = async (req, res) => {
+  try {
+    const artifact = await Artifact.findById(req.params.id).populate(
+      "comments.userId",
+      "name email",
+    );
+
+    if (!artifact) {
+      return res.status(404).json({ message: "Artifact not found" });
+    }
+
+    res.json({
+      totalComments: artifact.comments.length,
+      
+      comments: artifact.comments,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.createArtifact = async (req, res) => {
+  try {
+    const artifact = await Artifact.create({
+      ...req.body,
+      createdBy: req.user.id,
+    });
+
+    // 🔔 Trigger webhook
+    sendArtifactWebhook(artifact);
+
+    res.json(artifact);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -1,0 +1,26 @@
+cms-backend
+│
+├── src
+│   ├── config
+│   │   └── db.js
+│   ├── controllers
+│   │   ├── auth.controller.js
+│   │   └── artifact.controller.js
+│   ├── middlewares
+│   │   └── auth.middleware.js
+│   ├── models
+│   │   ├── user.model.js
+│   │   ├── otp.model.js
+│   │   └── artifact.model.js
+│   ├── routes
+│   │   ├── auth.routes.js
+│   │   └── artifact.routes.js
+│   └── app.js
+│
+├── .env
+├── server.js
+└── .gitignore
+
+
+cd ./ cms-backend
+npm install express mongoose cors morgan dotenv bcrypt jsonwebtoken nodemailer otp-generator
